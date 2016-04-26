@@ -1,0 +1,43 @@
+# Welcome to Jekyll!
+#
+# This config file is meant for settings that affect your whole blog, values
+# which you are expected to set up once and rarely need to edit after that.
+# For technical reasons, this file is *NOT* reloaded automatically when you use
+# 'jekyll serve'. If you change this file, please restart the server process.
+
+# Global settings
+timezone: Europe/Madrid
+
+# Site settings
+title: mykter.com
+description: > # multiline entry. Appears in head meta (for search results) and feed.xml site desc
+  Michael Macnair's blog.
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "https://mykter.com" # the base hostname & protocol for your site
+
+email: blog@mykter.com
+twitter_username: michael_macnair
+github_username:  mykter
+
+# Build settings
+markdown: kramdown
+
+# Outputting
+permalink: /:year/:month/:day/:title # pretty but without the categories
+
+# Github Pages defaults:
+kramdown:
+  input: GFM
+  hard_wrap: false
+gems:
+  - jekyll-coffeescript
+  - jekyll-paginate
+
+# Github Pages fixed settings:
+lsi: false
+safe: true
+source: .
+incremental: false
+highlighter: rouge
+gist:
+  noscript: false
