@@ -4,13 +4,15 @@ title:  "afl-fuzz on ppc"
 date:   2016-04-27
 categories: fuzzing
 ---
-afl-fuzz gives you great fuzzer coverage for very little investment of development time. Its primary target platform is Linux on x86 / x86-64, however since the introduction of LLVM mode / afl-clang-fast, [the docs][llvm-mode] (link is to an unofficial mirror) offer some hope for those of us working on less mainstream architectures:
+afl-fuzz gives you great fuzzer coverage for very little investment of development time. Its primary target platform is Linux on x86 / x86-64, however since the introduction of LLVM mode / `afl-clang-fast`, [the docs][llvm-mode] (link is to an unofficial mirror) offer some hope for those of us working on less mainstream architectures:
 
 > The instrumentation is CPU-independent. At least in principle, you should
 > be able to rely on it to fuzz programs on non-x86 architectures (after
 > building afl-fuzz with `AFL_NOX86=1`).
 
-This is, however, the grand total of the documentation available for using afl on other architectures. I'm pleased to report that it doesn't just work in principle, but in practice too, though it's not necessarily straight forward. Here is what I did to start fuzzing with afl when cross compiling for a 32bit PowerPC target.
+This is, however, the grand total of the documentation available for using afl on other architectures. I'm pleased to report that it works in practice as well as principle, though it's not straight forward. Here is what I did to start fuzzing with afl when cross compiling for PowerPC targets (ppc & ppc64).
+
+(Update 2017-07-17: minor improvements and a cleaner approach that doesn't involve installing afl.)
 
 1. Will be replaced with the ToC
 {:toc}
@@ -18,10 +20,17 @@ This is, however, the grand total of the documentation available for using afl o
 ## Prerequisites
 For this to work you need to be able to compile the software to be fuzzed with vanilla clang and successfully run it on the target. How you do this depends on your software, see below for some difficulties I encountered.
 
-Then you need to compile and install the afl LLVM mode compilers in the usual fashion from the llvm-mode directory: make / make install. This installs afl-clang-fast (compiled for your host system) in /usr/local.
+Then you need to compile the afl LLVM mode compilers in the usual fashion for your host system, we're going to put it in a directory called `afl-cross`:
+{% highlight shell %}
+wget http://lcamtuf.coredump.cx/afl/releases/afl-latest.tgz
+tar xzf afl-latest.tgz
+mv afl-2.46b afl-cross
+cd afl-cross
+make && make -C llvm_mode
+{% endhighlight %}
 
 ## Aside: cross compilation with clang
-This isn't afl specific, but is another problem I needed to solve before I could use afl's llvm mode compiler.
+This isn't afl specific, but is another problem I needed to solve before I could use afl's LLVM mode compiler.
 
 On the one hand, cross compiling with clang is a breeze because it has built in support for it - you don't need to compile a dedicated cross-compiler for the job. On the other hand....
 
@@ -32,30 +41,37 @@ clang -target magic-target-triple -B /path/to/cross/tools/dir -mcpu=<mycpu> \
  --sysroot=/path/to/sysroot -o myExec myExec.c
 {% endhighlight %}
 
-Actually working out the correct magic-target-triple was far harder than it should have been. Hopefully [these improvements][target-triple] to clang will be implemented to help you enumerate the supported targets - until then, searching + guessing was all I had. 32bit ppc target triples seem take the form `powerpc-<vendor>-linux`.
+Actually working out the correct magic-target-triple was far harder than it should have been. Hopefully [these improvements][target-triple] to clang will be implemented to help you enumerate the supported targets - until then, searching + guessing was all I had. 32bit ppc target triples seem to take the form `powerpc-<vendor>-linux`.
 
-If you're cross compiling for a target that has full support in llvm then this should be a lot easier.
+If you're cross compiling for a target that has full support in LLVM then this should be a lot easier.
 
 ## Cross compile afl-fuzz and the afl runtime
-Now we need two things that are compiled to run on the ppc target: afl-fuzz (and any other utilities like afl-whatsup); and the tiny blob of afl code that afl-clang-fast will add to every object you compile. The appropriate invocation to cross compile afl-fuzz will look something like:
+Now we need two things that are compiled to run on the ppc target: afl-fuzz (and any other utilities like afl-analyze); and the tiny blob of afl code that `afl-clang-fast` will add to every object you compile - `afl-llvm-rt.o` (and potentially its 64bit companion). Unpack another copy of afl into a new directory, let's call it `afl-target`. The appropriate invocation will look something like:
 
-    CC="clang" CFLAGS="-O3 -funroll-loops -target magic-target-triple -m32 \
-     -mcpu=<mycpu> --sysroot=/path/to/my/sysroot -B /path/to/cross/tools/dir" \
-     AFL_NOX86=1 make
+{% highlight shell %}
+tar xzf afl-latest.tgz
+mv afl-2.46b afl-target
+cd afl-target
+( export CC="clang" CFLAGS="-O3 -funroll-loops -target magic-target-triple \
+-m32 -mcpu=<mycpu> --sysroot=/path/to/my/sysroot -B /path/to/cross/tools/dir" \
+AFL_NOX86=1 make && make -C llvm_mode )
+{% endhighlight %}
 
-Then to make the blob that gets added to your code, `afl-llvm-rt.o`, we go back to the llvm-mode folder and use the same `CFLAGS` but don't specify CC (can't remember why this was - but it didn't work with CC="clang"). Then manually install this object so afl-clang-fast picks it up, not the x86 variant that came with the original install:
+(I'm using export to avoid repeating CFLAGS for each make command, and a `( subshell )` so the export doesn't taint the parent.)
+
+Note that the final step in the Makefile is to run a test by compiling something and executing it - this will fail, because the host architecture is different to the target. That's fine.
+
+Now replace the cross-compiler's version of this object with the target one, so our cross compiling `afl-clang-fast` injects the right code:
     
 {% highlight shell %}
-sudo install -m 755 ../afl-llvm-rt.o /usr/local/lib/afl/
+cp afl-target/afl-llvm-rt* afl-cross/
 {% endhighlight %}
 
 ## Usage
-At this point everything just works. Cross compile your target software, e.g. with `CC="afl-clang-fast" make`, copy the binaries and afl-fuzz over to the target, and run under afl in the normal way.
-
-Of course your locally installed version of `afl-clang-fast` will now compile in object code for the target architecture, not your host architecture, so don't expect it to work for local testing! You could presumably adapt this procedure dropping the `make install` steps to avoid this issue.
+At this point everything just works. Cross compile your target software, e.g. with `CC="/path/to/afl-cross/afl-clang-fast" ./configure && make`; copy the instrumented binaries to the target; copy afl-fuzz from the `afl-target` directory to the target; and fuzz in the normal way.
 
 ## Summary
-You can use afl in a cross-compilation setting, but need to (a) be able to cross compile for your target with clang, and (b) compile in the target architecture variant of afl-llvm-rt.o to your host version of afl-clang-fast. afl-fuzz and other utilities compiled for ppc can then be copied on to the target, enabling you to start torturing non-x86 software.
+You can use afl on non-x86 targets, but need to (a) be able to cross compile for your target with clang, and (b) compile the target architecture variant of `afl-llvm-rt*.o` for use by the host version of `afl-clang-fast`. afl-fuzz and other utilities compiled for the target can then be copied on to the target, enabling you to start torturing non-x86 software.
 
 
 [llvm-mode]:https://github.com/rc0r/afl-fuzz/tree/master/llvm_mode 
