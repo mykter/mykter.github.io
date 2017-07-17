@@ -46,7 +46,7 @@ Actually working out the correct magic-target-triple was far harder than it shou
 If you're cross compiling for a target that has full support in LLVM then this should be a lot easier.
 
 ## Cross compile afl-fuzz and the afl runtime
-Now we need two things that are compiled to run on the ppc target: afl-fuzz (and any other utilities like afl-analyze); and the tiny blob of afl code that `afl-clang-fast` will add to every object you compile - `afl-llvm-rt.o` (and potentially its 64bit companion). Unpack another copy of afl into a new directory, let's call it `afl-target`. The appropriate invocation will look something like:
+Now we need two things that are compiled to run on the ppc target: `afl-fuzz` (and any other utilities like afl-analyze); and the tiny blob of afl code that `afl-clang-fast` will add to every object you compile - `afl-llvm-rt.o` (and potentially its 64bit companion). Unpack another copy of afl into a new directory, let's call it `afl-target`. The appropriate invocation will look something like:
 
 {% highlight shell %}
 tar xzf afl-latest.tgz
@@ -68,10 +68,10 @@ cp afl-target/afl-llvm-rt* afl-cross/
 {% endhighlight %}
 
 ## Usage
-At this point everything just works. Cross compile your target software, e.g. with `CC="/path/to/afl-cross/afl-clang-fast" ./configure && make`; copy the instrumented binaries to the target; copy afl-fuzz from the `afl-target` directory to the target; and fuzz in the normal way.
+At this point everything just works. Cross compile your target software, e.g. with `CC="/path/to/afl-cross/afl-clang-fast" CFLAGS="<all-the-flags>" ./configure && make`; copy the instrumented binaries to the target; copy `afl-fuzz` from the `afl-target` directory to the target; and fuzz in the normal way.
 
 ## Summary
-You can use afl on non-x86 targets, but need to (a) be able to cross compile for your target with clang, and (b) compile the target architecture variant of `afl-llvm-rt*.o` for use by the host version of `afl-clang-fast`. afl-fuzz and other utilities compiled for the target can then be copied on to the target, enabling you to start torturing non-x86 software.
+You can use afl on non-x86 targets, but need to (a) be able to cross compile for your target with clang, and (b) compile the target architecture variant of `afl-llvm-rt*.o` for use by the host version of `afl-clang-fast`. `afl-fuzz` and other utilities compiled for the target can then be copied on to the target, enabling you to start torturing non-x86 software.
 
 
 [llvm-mode]:https://github.com/rc0r/afl-fuzz/tree/master/llvm_mode 
