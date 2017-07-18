@@ -8,7 +8,7 @@ afl-fuzz gives you great fuzzer coverage for very little investment of developme
 
 > The instrumentation is CPU-independent. At least in principle, you should
 > be able to rely on it to fuzz programs on non-x86 architectures (after
-> building afl-fuzz with `AFL_NOX86=1`).
+> building afl-fuzz with `AFL_NO_X86=1`).
 
 This is, however, the grand total of the documentation available for using afl on other architectures. I'm pleased to report that it works in practice as well as principle, though it's not straight forward. Here is what I did to start fuzzing with afl when cross compiling for PowerPC targets (ppc & ppc64).
 
@@ -54,7 +54,7 @@ mv afl-2.46b afl-target
 cd afl-target
 ( export CC="clang" CFLAGS="-O3 -funroll-loops -target magic-target-triple \
 -m32 -mcpu=<mycpu> --sysroot=/path/to/my/sysroot -B /path/to/cross/tools/dir" \
-AFL_NOX86=1 make && make -C llvm_mode )
+AFL_NO_X86=1 make && make -C llvm_mode )
 {% endhighlight %}
 
 (I'm using export to avoid repeating CFLAGS for each make command, and a `( subshell )` so the export doesn't taint the parent.)
