@@ -29,7 +29,7 @@ permalink: /:year/:month/:day/:title # pretty but without the categories
 kramdown:
   input: GFM
   hard_wrap: false
-gems:
+plugins:
   - jekyll-coffeescript
   - jekyll-paginate
 
