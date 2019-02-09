@@ -12,7 +12,7 @@ I adapted the two guides and learned a few things along the way -- this is mostl
 The changes from [coreyk][coreyk]'s and [basdp][basdp]'s guides are roughly:
  * Used Raspbian Stretch (no changes needed)
  * Use stock darkice binaries from the repository
- * Marginally simpler darkice init script fixes
+ * darkice init script tweaks
  * Stream from port 80 so you don't have to specify a port
  * Power control from a mobile via a URL
 
@@ -27,9 +27,25 @@ basdp provides their own .deb. This is fragile (what versions of raspbian will i
 
 I had no issues with the stock darkice. This meant the only packages I needed to install were darkice and icecast2 (and vim!).
 
-Simpler darkice init script fix
--------------------------------
+darkice init script tweaks
+--------------------------
 I followed [coreyk's ][coreyk] guide, but instead of deleting the pidfile with `rm`, you can pass `--remove-pidfile` to `start-stop-daemon` when stopping.
+
+To get logging output from darkice, I changed the start invocation to make use of `--no-close`:
+
+```shell
+LOGFILE="$LOGDIR/$NAME.log"
+...
+start-stop-daemon --start --quiet --make-pidfile --pidfile $PIDFILE \
+            --background --chuid $USER:$GROUP --no-close \
+	    --exec $DAEMON -- $DAEMON_OPTS >> $LOGFILE 2>&1
+```
+
+Not directly related to the init script, but note that darkice is being run as nobody:nobody. This user can't set the realtime scheduling priority requests in darkice's configuration file, so we give the binary that capability:
+
+```shell
+sudo setcap cap_sys_nice=+ep `which darkice`
+```
 
 Default port
 ------------
