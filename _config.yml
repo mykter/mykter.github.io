@@ -6,7 +6,7 @@
 # 'jekyll serve'. If you change this file, please restart the server process.
 
 # Global settings
-timezone: Europe/Madrid
+timezone: Europe/London
 
 # Site settings
 title: mykter.com
