@@ -116,7 +116,7 @@ I couldn't see anything beyond the fork approach mentioned for python or rust.
 
 ## Conclusion
 
-Forking is the most robust approach, and you should probably do this. However if you'd like your existing dependency management tools to continue working with this patched dependency, there a few options.
+Forking is the most robust approach, and you should probably do this. However if you'd like your existing dependency management tools to continue working with this patched dependency, there are a few options.
 
 Update: you should probably just use [patch-package][patch-package], a robust install-time patching tool.
 
